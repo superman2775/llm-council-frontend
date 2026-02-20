@@ -2,75 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>LLM Council</title>
+  <title>LLM Council HTTP API Demo</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
-      padding: 0;
-      background: #0b1120;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
       color: #e5e7eb;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      min-height: 100vh;
     }
     header {
       padding: 12px 16px;
-      background: #020617;
       border-bottom: 1px solid #1f2937;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      align-items: center;
+      gap: 8px;
+      background: #020617;
     }
     header h1 {
-      font-size: 18px;
       margin: 0;
+      font-size: 18px;
     }
     header small {
       color: #9ca3af;
     }
     main {
       flex: 1;
-      display: flex;
       padding: 12px;
-      gap: 12px;
-      min-height: 0;
-    }
-    .left, .right {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      gap: 12px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .panel {
       background: #020617;
-      border: 1px solid #1f2937;
       border-radius: 8px;
-      padding: 8px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      height: 100%;
+      border: 1px solid #1f2937;
+      padding: 10px;
+      flex: 1;
+      min-width: 260px;
       min-height: 0;
     }
     .panel h2 {
+      margin: 0 0 6px 0;
       font-size: 14px;
-      margin: 0 0 4px 0;
       color: #9ca3af;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-    }
-    .input-area {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
     }
     textarea {
       width: 100%;
-      min-height: 100px;
+      min-height: 120px;
       resize: vertical;
       background: #020617;
       color: #e5e7eb;
@@ -84,17 +75,20 @@
       outline: 1px solid #4f46e5;
       border-color: #4f46e5;
     }
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+    select, input[type="text"] {
+      background: #020617;
+      color: #e5e7eb;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+      padding: 4px 8px;
+      font-size: 13px;
+      font-family: inherit;
     }
     button {
       background: #4f46e5;
-      color: white;
-      border: none;
+      color: #fff;
       border-radius: 6px;
+      border: none;
       padding: 6px 12px;
       font-size: 14px;
       cursor: pointer;
@@ -111,59 +105,40 @@
       color: #9ca3af;
     }
     .output {
-      flex: 1;
-      background: #020617;
-      border-radius: 6px;
-      border: 1px solid #1f2937;
-      padding: 8px;
-      font-size: 14px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-    .council-tabs {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-bottom: 4px;
-    }
-    .council-tab {
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      border: 1px solid #374151;
-      cursor: pointer;
-      background: #020617;
-      color: #9ca3af;
-    }
-    .council-tab.active {
-      background: #4f46e5;
-      border-color: #4f46e5;
-      color: white;
-    }
-    .model-output {
-      white-space: pre-wrap;
       font-size: 13px;
       line-height: 1.5;
-    }
-    .final-answer {
       white-space: pre-wrap;
-      font-size: 14px;
-      line-height: 1.6;
+      overflow-y: auto;
+      max-height: 320px;
     }
-    .meta {
-      font-size: 12px;
-      color: #9ca3af;
+    .stage1-item {
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #1f2937;
+    }
+    .stage1-item:last-child {
+      border-bottom: none;
+    }
+    .stage1-model {
+      font-weight: 600;
+      font-size: 13px;
+      color: #a5b4fc;
+      margin-bottom: 2px;
     }
     footer {
       padding: 6px 10px;
       font-size: 11px;
       color: #6b7280;
       border-top: 1px solid #1f2937;
-      background: #020617;
       text-align: right;
+      background: #020617;
+    }
+    .meta {
+      font-size: 11px;
+      color: #9ca3af;
     }
     @media (max-width: 900px) {
-      main {
+      .row {
         flex-direction: column;
       }
     }
@@ -172,55 +147,70 @@
 <body>
   <header>
     <div>
-      <h1>LLM Council</h1>
-      <small>Ask multiple LLMs at once; council synthesizes a final answer.</small>
+      <h1>LLM Council (HTTP API)</h1>
+      <small>Uses POST /v1/council/run as documented.</small>
     </div>
-    <div class="meta" id="backend-info">
+    <div class="meta">
       Backend: <span id="backend-url"></span>
     </div>
   </header>
 
   <main>
-    <div class="left">
-      <div class="panel">
-        <h2>
-          Your Question
-          <span class="status" id="status">Idle</span>
-        </h2>
-        <div class="input-area">
-          <textarea id="prompt" placeholder="Ask the council anything..."></textarea>
-          <div class="controls">
-            <button id="ask-btn">
-              Ask Council
-            </button>
-            <button id="stop-btn" disabled>Stop</button>
-          </div>
+    <div class="panel">
+      <h2>
+        Your Request
+        <span class="status" id="status">Idle</span>
+      </h2>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <textarea id="prompt" placeholder="Ask the council anything..."></textarea>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <label class="meta">
+            Verdict type:
+            <select id="verdict-type">
+              <option value="synthesis" selected>synthesis (default)</option>
+              <option value="binary">binary</option>
+              <option value="tie_breaker">tie_breaker</option>
+            </select>
+          </label>
+
+          <button id="run-btn">Run council</button>
+        </div>
+
+        <div class="meta">
+          This calls <code>POST /v1/council/run</code> with JSON:
+          <code>{"prompt": "...", "verdict_type": "..."}</code>
         </div>
       </div>
     </div>
 
-    <div class="right">
+    <div class="row">
       <div class="panel">
-        <h2>
-          Council Responses
-        </h2>
-        <div class="council-tabs" id="council-tabs"></div>
-        <div class="output" id="council-output">
-          Ask a question to see individual model responses here.
+        <h2>Stage 1 – Model responses</h2>
+        <div class="output" id="stage1-output">
+          Stage 1 responses will appear here.
         </div>
       </div>
 
-      <div class="panel" style="margin-top:8px;">
-        <h2>Final Answer</h2>
-        <div class="output" id="final-output">
-          The synthesized council answer will appear here.
+      <div class="panel">
+        <h2>Stage 3 – Final synthesis</h2>
+        <div class="output" id="stage3-output">
+          The final synthesized answer will appear here.
         </div>
+        <div class="meta" id="stage3-meta"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Raw response JSON</h2>
+      <div class="output" id="raw-output">
+        Full JSON from <code>/v1/council/run</code> will appear here.
       </div>
     </div>
   </main>
 
   <footer>
-    Backend powered by LLM Council on Render. Frontend is a static site (no server-side code).
+    Frontend: static HTML/JS. Backend: LLM Council HTTP API.
   </footer>
 
   <script>
@@ -230,85 +220,24 @@
 
     document.getElementById('backend-url').textContent = API_BASE;
 
-    const promptInput = document.getElementById('prompt');
-    const askBtn = document.getElementById('ask-btn');
-    const stopBtn = document.getElementById('stop-btn');
+    const promptEl = document.getElementById('prompt');
+    const verdictTypeEl = document.getElementById('verdict-type');
+    const runBtn = document.getElementById('run-btn');
     const statusEl = document.getElementById('status');
-    const tabsEl = document.getElementById('council-tabs');
-    const councilOutputEl = document.getElementById('council-output');
-    const finalOutputEl = document.getElementById('final-output');
-
-    let abortController = null;
-    let currentCouncilData = null;
-    let activeModelId = null;
+    const stage1OutputEl = document.getElementById('stage1-output');
+    const stage3OutputEl = document.getElementById('stage3-output');
+    const stage3MetaEl = document.getElementById('stage3-meta');
+    const rawOutputEl = document.getElementById('raw-output');
 
     function setStatus(text) {
       statusEl.textContent = text;
     }
 
-    function setLoading(isLoading) {
-      askBtn.disabled = isLoading;
-      stopBtn.disabled = !isLoading;
-      promptInput.disabled = isLoading;
-      setStatus(isLoading ? 'Running council...' : 'Idle');
-    }
-
-    function renderTabs() {
-      tabsEl.innerHTML = '';
-      if (!currentCouncilData || !currentCouncilData.models) {
-        return;
-      }
-      currentCouncilData.models.forEach(model => {
-        const btn = document.createElement('button');
-        btn.className = 'council-tab' + (model.id === activeModelId ? ' active' : '');
-        btn.textContent = model.display_name || model.name || model.id;
-        btn.onclick = () => {
-          activeModelId = model.id;
-          renderTabs();
-          renderModelOutput();
-        };
-        tabsEl.appendChild(btn);
-      });
-    }
-
-    function renderModelOutput() {
-      if (!currentCouncilData || !currentCouncilData.models) {
-        councilOutputEl.textContent = 'No model responses yet.';
-        return;
-      }
-      const model = currentCouncilData.models.find(m => m.id === activeModelId) || currentCouncilData.models[0];
-      if (!model) {
-        councilOutputEl.textContent = 'No model responses yet.';
-        return;
-      }
-      activeModelId = model.id;
-      const responseText = model.response_text || model.response || '(no response text)';
-      const rankings = model.rankings || model.review || null;
-
-      councilOutputEl.innerHTML = `
-        <div class="model-output">
-          <strong>${model.display_name || model.name || model.id}</strong>
-          <br /><br />
-          ${escapeHtml(responseText)}
-        </div>
-        ${rankings ? `
-          <div class="meta" style="margin-top:8px;">
-            Ranked peers: ${escapeHtml(JSON.stringify(rankings, null, 2))}
-          </div>
-        ` : ''}
-      `;
-    }
-
-    function renderFinalAnswer() {
-      if (!currentCouncilData || !currentCouncilData.final_answer) {
-        finalOutputEl.textContent = 'No final answer yet.';
-        return;
-      }
-      finalOutputEl.innerHTML = `
-        <div class="final-answer">
-          ${escapeHtml(currentCouncilData.final_answer)}
-        </div>
-      `;
+    function setLoading(loading) {
+      runBtn.disabled = loading;
+      promptEl.disabled = loading;
+      verdictTypeEl.disabled = loading;
+      setStatus(loading ? 'Running council...' : 'Idle');
     }
 
     function escapeHtml(text) {
@@ -318,95 +247,88 @@
         .replace(/>/g, '&gt;');
     }
 
-    async function callCouncil(prompt) {
-      setLoading(true);
-      currentCouncilData = null;
-      activeModelId = null;
-      tabsEl.innerHTML = '';
-      councilOutputEl.textContent = 'Waiting for council responses...';
-      finalOutputEl.textContent = 'Waiting for final answer...';
+    function renderResponse(data) {
+      // Raw JSON
+      rawOutputEl.textContent = JSON.stringify(data, null, 2);
 
-      abortController = new AbortController();
+      // Stage 1: list of { model, response } per docs
+      // https://llm-council.dev/guides/http-api/#post-v1councilrun
+      const s1 = data.stage1 || [];
+      if (!s1.length) {
+        stage1OutputEl.textContent = 'No stage1 responses found.';
+      } else {
+        stage1OutputEl.innerHTML = s1.map(item => `
+          <div class="stage1-item">
+            <div class="stage1-model">${escapeHtml(item.model || 'unknown-model')}</div>
+            <div>${escapeHtml(item.response || '')}</div>
+          </div>
+        `).join('');
+      }
+
+      // Stage 3: { synthesis, chairman }
+      const s3 = data.stage3 || {};
+      if (s3.synthesis) {
+        stage3OutputEl.innerHTML = escapeHtml(s3.synthesis);
+      } else {
+        stage3OutputEl.textContent = 'No synthesis found in stage3.';
+      }
+      stage3MetaEl.textContent = s3.chairman
+        ? `Chairman model: ${s3.chairman}`
+        : '';
+    }
+
+    async function runCouncil() {
+      const prompt = promptEl.value.trim();
+      if (!prompt) {
+        alert('Enter a prompt first.');
+        return;
+      }
+      const verdictType = verdictTypeEl.value || 'synthesis';
+
+      setLoading(true);
+      stage1OutputEl.textContent = 'Waiting for response...';
+      stage3OutputEl.textContent = 'Waiting for response...';
+      stage3MetaEl.textContent = '';
+      rawOutputEl.textContent = '';
 
       try {
-        const response = await fetch(API_BASE + '/v1/council/run', {
+        const res = await fetch(API_BASE + '/v1/council/run', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(API_TOKEN ? { 'Authorization': 'Bearer ' + API_TOKEN } : {})
           },
           body: JSON.stringify({
-            prompt: prompt
-          }),
-          signal: abortController.signal
+            prompt: prompt,
+            verdict_type: verdictType
+            // you can also pass: models, api_key, include_dissent, webhook_* etc.
+          })
         });
 
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error('Backend error: ' + response.status + ' ' + text);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error('HTTP ' + res.status + ' – ' + text);
         }
 
-        // The docs show a non-streaming JSON response by default.
-        // Adjust if you enable streaming.
-        const data = await response.json();
-        /*
-          Expected shape (approx based on docs):
-          {
-            "final_answer": "...",
-            "models": [
-              {
-                "id": "openai/gpt-4.1",
-                "display_name": "GPT-4.1",
-                "response_text": "...",
-                "rankings": {...}
-              },
-              ...
-            ]
-          }
-        */
-        currentCouncilData = data;
-        if (data.models && data.models.length > 0) {
-          activeModelId = data.models[0].id;
-        }
-
-        renderTabs();
-        renderModelOutput();
-        renderFinalAnswer();
+        const data = await res.json();
+        renderResponse(data);
         setStatus('Done');
       } catch (err) {
-        if (err.name === 'AbortError') {
-          setStatus('Cancelled');
-        } else {
-          console.error(err);
-          councilOutputEl.textContent = 'Error: ' + err.message;
-          finalOutputEl.textContent = 'Error running council.';
-          setStatus('Error');
-        }
+        console.error(err);
+        stage1OutputEl.textContent = 'Error: ' + err.message;
+        stage3OutputEl.textContent = 'Error calling /v1/council/run.';
+        rawOutputEl.textContent = '';
+        setStatus('Error');
       } finally {
         setLoading(false);
-        abortController = null;
       }
     }
 
-    askBtn.addEventListener('click', () => {
-      const prompt = promptInput.value.trim();
-      if (!prompt) {
-        alert('Type a question first.');
-        return;
-      }
-      callCouncil(prompt);
-    });
-
-    stopBtn.addEventListener('click', () => {
-      if (abortController) {
-        abortController.abort();
-      }
-    });
-
-    promptInput.addEventListener('keydown', (e) => {
+    runBtn.addEventListener('click', runCouncil);
+    promptEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        askBtn.click();
+        runCouncil();
       }
     });
   </script>
